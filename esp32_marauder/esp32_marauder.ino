@@ -1,6 +1,6 @@
 /* FLASH SETTINGS
 Board: LOLIN D32
-Flash Frequency: 80MHz
+ Frequency: 80MHz
 Partition Scheme: Minimal SPIFFS
 https://www.online-utility.org/image/convert/to/XBM
 */
@@ -90,10 +90,6 @@ CommandLine cli_obj;
 
 #if defined(HAS_SD) && !defined(HAS_C5_SD)
   SDInterface sd_obj;
-#endif
-
-#ifdef MARAUDER_M5STICKC
-  AXP192 axp192_obj;
 #endif
 
 #ifdef HAS_FLIPPER_LED
@@ -238,16 +234,18 @@ void setup()
 
   Serial.begin(115200);
 
+  #ifdef HAS_ACT_LED
+    pinMode(ACT_LED_PIN, OUTPUT);
+    delay(100);
+    digitalWrite(ACT_LED_PIN, LOW);
+  #endif
+
   while(!Serial)
     delay(10);
 
   #ifdef HAS_C5_SD
     sharedSPI.begin(SD_SCK, SD_MISO, SD_MOSI);
     delay(100);
-  #endif
-
-  #ifdef defined(MARAUDER_M5STICKC) && !defined(MARAUDER_M5STICKCP2)
-    axp192_obj.begin();
   #endif
 
   #if defined(MARAUDER_M5STICKCP2) // Prevent StickCP2 from turning off when disconnect USB cable
@@ -314,7 +312,7 @@ void setup()
   #endif
 
   #ifdef HAS_SCREEN
-    #ifndef MARAUDER_CARDPUTER
+    #if !defined(MARAUDER_CARDPUTER) && !defined(MARAUDER_CARDPUTER_ADV)
       display_obj.tft.drawCentreString("ESP32 Marauder", TFT_WIDTH/2, TFT_HEIGHT * 0.33, 1);
       display_obj.tft.drawCentreString("JustCallMeKoko", TFT_WIDTH/2, TFT_HEIGHT * 0.5, 1);
       display_obj.tft.drawCentreString(display_obj.version_number, TFT_WIDTH/2, TFT_HEIGHT * 0.66, 1);
@@ -341,7 +339,9 @@ void setup()
 
   settings_obj.begin();
 
-  if (settings_obj.getSettingType("ChanHop") == "") {
+  const char* type = settings_obj.getSettingType("wu");
+
+  if (type == nullptr || type[0] == '\0') {
     Serial.println(F("Current settings format not supported. Installing new default settings..."));
     settings_obj.createDefaultSettings(SPIFFS);
   }
@@ -394,6 +394,9 @@ void setup()
   #endif
 
   #ifdef HAS_SCREEN
+    #if defined(MARAUDER_CARDPUTER) || defined(MARAUDER_CARDPUTER_ADV)
+      display_obj.clearScreen();
+    #endif
     menu_function_obj.RunSetup();
   #endif
 
