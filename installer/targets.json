@@ -129,6 +129,15 @@
       "esptoolChip": "esp32"
     },
     {
+      "id": "cyd-2432s028-inverted",
+      "displayName": "Marauder CYD 2432S028 Inverted",
+      "aliases": ["CYD 2432S028R Inverted"],
+      "buildFlag": "MARAUDER_CYD_MICRO_INVERTED",
+      "assetSuffix": "cyd_2432S028_inverted",
+      "chipFamily": "ESP32",
+      "esptoolChip": "esp32"
+    },
+    {
       "id": "cyd-2432s024-guition",
       "displayName": "Marauder CYD 2432S024 GUITION",
       "aliases": ["RL Phantom"],
