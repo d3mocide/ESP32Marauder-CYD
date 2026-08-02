@@ -270,6 +270,66 @@ jobs:
           path: ${{ env.artifact_path }}
           retention-days: 5
 
+      # The release artifact above is the application image on its own, which is
+      # all esptool needs when the board already has a bootloader. The web
+      # flasher erases first, so it has to write the full set. Collected as a
+      # separate artifact so the release job's glob keeps matching only the
+      # application bins.
+      - name: Stage ${{ matrix.board.name }} Web Flasher Bins
+        if: ${{ startsWith(matrix.board.file_name, 'cyd_') }}
+        run: |
+          set -euo pipefail
+
+          VERSION_DOT=$(grep '#define MARAUDER_VERSION' ./esp32_marauder/configs.h | sed -E 's/.*"v([^"]+)"/\1/')
+          BUILD_DIR=./esp32_marauder/build/esp32.esp32.${{ matrix.board.build_dir }}
+          STAGE=./webflasher_stage/${{ matrix.board.file_name }}
+
+          mkdir -p "$STAGE"
+          cp "$BUILD_DIR/${{ env.artifact_name }}"          "$STAGE/firmware.bin"
+          cp "$BUILD_DIR/esp32_marauder.ino.bootloader.bin" "$STAGE/bootloader.bin"
+          cp "$BUILD_DIR/esp32_marauder.ino.partitions.bin" "$STAGE/partitions.bin"
+
+          # boot_app0 ships with the core rather than the sketch build.
+          BOOT_APP0=$(find /home/runner/.arduino15/packages/esp32 -name boot_app0.bin | head -n 1)
+          if [ -z "$BOOT_APP0" ]; then
+            echo "::error::boot_app0.bin not found in the installed ESP32 core"
+            exit 1
+          fi
+          cp "$BOOT_APP0" "$STAGE/boot_app0.bin"
+
+          # esp-web-tools takes byte offsets, not hex strings.
+          BOOTLOADER_OFFSET=$(( ${{ matrix.board.addr }} ))
+
+          cat > "$STAGE/manifest.json" <<EOF
+          {
+            "name": "ESP32 Marauder — ${{ matrix.board.name }}",
+            "version": "$VERSION_DOT",
+            "new_install_prompt_erase": true,
+            "builds": [
+              {
+                "chipFamily": "ESP32",
+                "parts": [
+                  { "path": "bootloader.bin", "offset": $BOOTLOADER_OFFSET },
+                  { "path": "partitions.bin", "offset": 32768 },
+                  { "path": "boot_app0.bin",  "offset": 57344 },
+                  { "path": "firmware.bin",   "offset": 65536 }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          python3 -c "import json,sys; json.load(open('$STAGE/manifest.json'))"
+          ls -la "$STAGE"
+
+      - name: Upload ${{ matrix.board.name }} Web Flasher Bins
+        if: ${{ startsWith(matrix.board.file_name, 'cyd_') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: webflasher-${{ matrix.board.file_name }}
+          path: ./webflasher_stage/${{ matrix.board.file_name }}
+          retention-days: 5
+
   post_compile_steps:
     name: Create Release
     runs-on: ubuntu-latest
@@ -428,3 +488,75 @@ jobs:
           git add resources/CURRENT/ resources/PREVIOUS/
           git commit -m "Update Marauder CYD firmware to ${{ steps.version.outputs.version_dot }}"
           git push
+  publish_webflasher:
+    name: Publish Web Flasher to Pages
+    runs-on: ubuntu-latest
+    needs: [compile_sketch]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout ESP32Marauder
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Download Web Flasher Bins
+        uses: actions/download-artifact@v4
+        with:
+          pattern: webflasher-*
+          path: ./webflasher_artifacts
+
+      - name: Lay Out docs/firmware
+        run: |
+          set -euo pipefail
+
+          # Each artifact unpacks to webflasher_artifacts/webflasher-<file_name>/.
+          # Strip the prefix so the directory matches the board id the page asks
+          # for in ./firmware/<id>/manifest.json.
+          rm -rf docs/firmware
+          published=0
+
+          for dir in ./webflasher_artifacts/webflasher-*/; do
+            [ -d "$dir" ] || continue
+            board=$(basename "$dir")
+            board=${board#webflasher-}
+
+            for f in manifest.json firmware.bin bootloader.bin partitions.bin boot_app0.bin; do
+              if [ ! -f "$dir/$f" ]; then
+                echo "::error::$board is missing $f"
+                exit 1
+              fi
+            done
+
+            mkdir -p "docs/firmware/$board"
+            cp "$dir"/*.bin "$dir/manifest.json" "docs/firmware/$board/"
+            published=$((published + 1))
+            echo "Published $board"
+          done
+
+          if [ "$published" -eq 0 ]; then
+            echo "::error::No web flasher artifacts were found"
+            exit 1
+          fi
+
+          echo "Published $published board(s)"
+          find docs/firmware -type f | sort
+
+      - name: Commit and Push
+        run: |
+          set -euo pipefail
+
+          VERSION_DOT=$(grep '#define MARAUDER_VERSION' ./esp32_marauder/configs.h | sed -E 's/.*"v([^"]+)"/\1/')
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/firmware
+
+          if git diff --cached --quiet; then
+            echo "Firmware is already up to date, nothing to commit"
+            exit 0
+          fi
+
+          git commit -m "Publish Marauder CYD v${VERSION_DOT} to the web flasher"
+          git push origin master
