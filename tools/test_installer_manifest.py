@@ -65,8 +65,8 @@ class InstallerManifestTests(unittest.TestCase):
         self.assertIn("set-build-path: true", installer_workflow)
         self.assertIn("--show-properties=expanded", installer_workflow)
         self.assertIn("github.event_name == 'release'", installer_workflow)
-        self.assertEqual(len(registry["targets"]), 23)
-        self.assertEqual(len(boards), 23)
+        self.assertEqual(len(registry["targets"]), 5)
+        self.assertEqual(len(boards), 5)
         self.assertEqual(registry_flags, workflow_flags)
         self.assertEqual(
             len(registry_flags),
@@ -89,7 +89,7 @@ class InstallerManifestTests(unittest.TestCase):
 
             path = generate_target_manifest(
                 REGISTRY,
-                "MARAUDER_V6",
+                "MARAUDER_CYD_MICRO",
                 build,
                 "v1.2.3",
                 "20260731",
@@ -100,7 +100,7 @@ class InstallerManifestTests(unittest.TestCase):
 
             self.assertEqual(manifest["channel"], "stable")
             self.assertEqual(manifest["metadataStatus"], "authoritative")
-            self.assertEqual(manifest["target"]["id"], "marauder-v6")
+            self.assertEqual(manifest["target"]["id"], "cyd-2432s028")
             self.assertEqual(manifest["flash"]["sizeBytes"], 4 * 1024 * 1024)
             self.assertEqual(len(manifest["flash"]["update"]["segments"]), 1)
             self.assertEqual(len(manifest["flash"]["factory"]["segments"]), 4)
@@ -116,7 +116,7 @@ class InstallerManifestTests(unittest.TestCase):
             with self.assertRaisesRegex(ManifestError, "No Arduino build properties"):
                 generate_target_manifest(
                     REGISTRY,
-                    "MARAUDER_V6",
+                    "MARAUDER_CYD_MICRO",
                     Path(temporary),
                     "v1.2.3",
                     "20260731",
@@ -132,7 +132,7 @@ class InstallerManifestTests(unittest.TestCase):
 
             path = generate_target_manifest(
                 REGISTRY,
-                "MARAUDER_FLIPPER",
+                "MARAUDER_CYD_2USB",
                 build,
                 "v1.2.3",
                 "20260731",
@@ -180,7 +180,7 @@ class InstallerManifestTests(unittest.TestCase):
             self.assertEqual(release["metadataStatus"], "authoritative")
             self.assertEqual(release["channel"], "stable")
             self.assertEqual(release["sourceCommit"], "a" * 40)
-            self.assertEqual(len(release["targets"]), 23)
+            self.assertEqual(len(release["targets"]), 5)
             self.assertIn("/" + "a" * 40 + "/", release["$schema"])
 
 

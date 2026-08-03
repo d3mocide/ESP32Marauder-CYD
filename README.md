@@ -11,6 +11,8 @@ This repository carries [Hedge's](https://github.com/CodeHedge/ESP32Marauder) CY
 
 Currently tracking upstream **v1.14.1**.
 
+> **This fork builds CYD targets only** — 2432S028, 2432S028 Inverted, 2432S028 2-USB, 2432S024 Guition and the 3.5 inch. The firmware source still supports every board upstream does, so other targets can be built locally by setting the flag in `esp32_marauder/configs.h`, but they are not built in CI and no binaries are published for them here. For any non-CYD board, use [upstream's releases](https://github.com/justcallmekoko/ESP32Marauder/releases/latest).
+
 ### Primary Modifications:
 
 - **Battery Monitoring Support**: Integrated support for the [Adafruit MAX17048 Battery Fuel Gauge](https://www.adafruit.com/product/5580) connected to port CN1, providing real-time battery percentage display in the top-right corner of the screen.
