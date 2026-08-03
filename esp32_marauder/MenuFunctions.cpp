@@ -979,29 +979,32 @@ void MenuFunctions::battery(bool initial)
 {
   #ifdef HAS_BATTERY
     uint16_t the_color;
-    if (battery_obj.i2c_supported)
+    if ((battery_obj.i2c_supported) && (battery_obj.battery_level >= 0))
     {
-      // Could use int compare maybe idk
-      if (((String)battery_obj.battery_level != "25") && ((String)battery_obj.battery_level != "0"))
-        the_color = TFT_GREEN;
-      else
-        the_color = TFT_RED;
+      if (battery_obj.battery_level < 20) the_color = TFT_RED;
+      else if (battery_obj.battery_level < 40) the_color = TFT_YELLOW;
+      else the_color = TFT_GREEN;
 
       if ((battery_obj.battery_level != battery_obj.old_level) || (initial)) {
         battery_obj.old_level = battery_obj.battery_level;
-        display_obj.tft.fillRect(204, 0, SCREEN_WIDTH, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
+        display_obj.tft.fillRect(SB_BAT_X, 0, SCREEN_WIDTH - SB_BAT_X, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
       }
 
       display_obj.tft.setCursor(0, 1);
-      /*if (!this->disable_touch) {
-        display_obj.tft.drawXBitmap(SB_TOUCH_X,
-                                    0,
-                                    menu_icons[STATUS_BAT],
-                                    16,
-                                    16,
-                                    STATUSBAR_COLOR,
-                                    the_color);
-      }*/
+      display_obj.tft.setTextColor(TFT_WHITE, STATUSBAR_COLOR);
+      // The battery icon shares its slot with the disabled-touch icon, so it
+      // only gets drawn while touch is enabled.
+      #ifdef HAS_FULL_SCREEN
+        if (!this->disable_touch) {
+          display_obj.tft.drawXBitmap(SB_TOUCH_X,
+                                      0,
+                                      menu_icons[STATUS_BAT],
+                                      16,
+                                      16,
+                                      STATUSBAR_COLOR,
+                                      the_color);
+        }
+      #endif
       #if defined(MARAUDER_CARDPUTER) || defined(MARAUDER_CARDPUTER_ADV)
         display_obj.tft.drawString((String)battery_obj.battery_level + "%", SB_BAT_X, 0, 1);
       #else
@@ -1111,11 +1114,8 @@ void MenuFunctions::updateStatusBar()
   #endif
   }
 
-  // Draw battery info
-  MenuFunctions::battery(false);
-  display_obj.tft.fillRect(186, 0, 16, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-
-  // Disable touch stuff
+  // Disable touch stuff. On boards with a battery this icon shares SB_TOUCH_X
+  // with the battery icon, so it is only shown while touch is disabled.
   #ifdef HAS_ILI9341
     #ifdef HAS_BUTTONS
       if (this->disable_touch) {
@@ -1128,18 +1128,24 @@ void MenuFunctions::updateStatusBar()
                                     STATUSBAR_COLOR,
                                     TFT_RED);
       }
-      else {
-        display_obj.tft.setCursor(0, 1);
-        display_obj.tft.drawXBitmap(SB_TOUCH_X,
-                                    0,
-                                    menu_icons[DISABLE_TOUCH],
-                                    16,
-                                    16,
-                                    STATUSBAR_COLOR,
-                                    TFT_DARKGREY);
-      }
+      #ifndef HAS_BATTERY
+        else {
+          display_obj.tft.setCursor(0, 1);
+          display_obj.tft.drawXBitmap(SB_TOUCH_X,
+                                      0,
+                                      menu_icons[DISABLE_TOUCH],
+                                      16,
+                                      16,
+                                      STATUSBAR_COLOR,
+                                      TFT_DARKGREY);
+        }
+      #endif
     #endif
   #endif
+
+  // Draw battery info. Runs after the touch icon so the battery icon reclaims
+  // SB_TOUCH_X once touch is re-enabled.
+  MenuFunctions::battery(false);
 
   // Draw SD info
   #ifdef HAS_SD
@@ -1289,11 +1295,8 @@ void MenuFunctions::drawStatusBar()
   #endif
 
 
-  MenuFunctions::battery(true);
-  display_obj.tft.fillRect(186, 0, 16, STATUS_BAR_WIDTH, STATUSBAR_COLOR);
-
-
-  // Disable touch stuff
+  // Disable touch stuff. On boards with a battery this icon shares SB_TOUCH_X
+  // with the battery icon, so it is only shown while touch is disabled.
   #ifdef HAS_ILI9341
     #ifdef HAS_BUTTONS
       if (this->disable_touch) {
@@ -1306,18 +1309,24 @@ void MenuFunctions::drawStatusBar()
                                     STATUSBAR_COLOR,
                                     TFT_RED);
       }
-      else {
-        display_obj.tft.setCursor(0, 1);
-        display_obj.tft.drawXBitmap(SB_TOUCH_X,
-                                    0,
-                                    menu_icons[DISABLE_TOUCH],
-                                    16,
-                                    16,
-                                    STATUSBAR_COLOR,
-                                    TFT_DARKGREY);
-      }
+      #ifndef HAS_BATTERY
+        else {
+          display_obj.tft.setCursor(0, 1);
+          display_obj.tft.drawXBitmap(SB_TOUCH_X,
+                                      0,
+                                      menu_icons[DISABLE_TOUCH],
+                                      16,
+                                      16,
+                                      STATUSBAR_COLOR,
+                                      TFT_DARKGREY);
+        }
+      #endif
     #endif
   #endif
+
+  // Draw battery info. Runs after the touch icon so the battery icon reclaims
+  // SB_TOUCH_X once touch is re-enabled.
+  MenuFunctions::battery(true);
 
   // Draw SD info
   #ifdef HAS_SD
