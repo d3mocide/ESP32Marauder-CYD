@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Marauder CYD — Web Flasher</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Browser-based installer for the CYD build of ESP32 Marauder, with MAX17048 battery monitoring and GPS on the bottom port.">
+  <link rel="icon" href="./assets/marauder-skull.png">
+  <meta property="og:title" content="Marauder CYD — Web Flasher">
+  <meta property="og:description" content="Browser-based installer for the CYD build of ESP32 Marauder, with MAX17048 battery monitoring and GPS on the bottom port.">
+  <meta property="og:image" content="./assets/marauder-skull.png">
+  <meta property="og:type" content="website">
+  <script type="module" src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"></script>
+  <style>
+    /* Palette sampled from the Marauder skull patch: bone #babbbf, black
+       #050708, crimson #ca2327, shadow grey #6d6e72. */
+    :root {
+      --black:      #050708;
+      --surface:    #0b0e10;
+      --surface-2:  #111417;
+      --line:       #1c2024;
+      --line-bright:#2a2f34;
+      --bone:       #babbbf;
+      --bone-bright:#e9eaec;
+      --muted:      #6d6e72;
+      --crimson:    #ca2327;
+      --crimson-dim:#8e1a1d;
+
+      --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--black);
+      color: var(--bone);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      padding: 40px 20px 60px;
+    }
+
+    .wrap { max-width: 860px; margin: 0 auto; }
+
+    /* ---------- header ---------- */
+
+    .masthead {
+      display: flex;
+      align-items: center;
+      gap: 22px;
+      padding-bottom: 28px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 40px;
+    }
+
+    .masthead img {
+      width: 66px;
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .wordmark {
+      font-size: 1.9rem;
+      font-weight: 700;
+      letter-spacing: 0.16em;
+      color: var(--bone-bright);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      font-family: var(--mono);
+      font-size: 0.76rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    /* ---------- sections ---------- */
+
+    section { margin-bottom: 40px; }
+
+    h2 {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h2::before {
+      content: '';
+      width: 3px;
+      height: 12px;
+      background: var(--crimson);
+      flex-shrink: 0;
+    }
+
+    p { margin-bottom: 14px; }
+    p:last-child { margin-bottom: 0; }
+
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 24px;
+    }
+
+    /* ---------- board picker ---------- */
+
+    label.field {
+      display: block;
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    select {
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+      background-color: var(--surface-2);
+      background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236d6e72' stroke-width='1.6' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 16px center;
+      border: 1px solid var(--line-bright);
+      border-radius: 4px;
+      color: var(--bone-bright);
+      font-family: var(--sans);
+      font-size: 1rem;
+      padding: 13px 44px 13px 15px;
+      cursor: pointer;
+    }
+
+    select:hover { border-color: #3a4046; }
+
+    select:focus-visible {
+      outline: 2px solid var(--crimson);
+      outline-offset: 1px;
+    }
+
+    /* Native option lists are painted by the OS; setting these keeps the
+       popup readable on the platforms that do honour them. */
+    select option { background: var(--surface-2); color: var(--bone-bright); }
+
+    /* ---------- spec readout ---------- */
+
+    .specs {
+      margin-top: 20px;
+      border-top: 1px solid var(--line);
+    }
+
+    .spec {
+      display: grid;
+      grid-template-columns: 128px 1fr;
+      gap: 16px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.88rem;
+    }
+
+    .spec dt {
+      font-family: var(--mono);
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding-top: 3px;
+    }
+
+    .spec dd { color: var(--bone); }
+
+    .spec dd .note {
+      display: block;
+      color: var(--muted);
+      font-size: 0.84em;
+      margin-top: 2px;
+    }
+
+    .mono { font-family: var(--mono); font-size: 0.92em; }
+
+    .tag {
+      display: inline-block;
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 3px;
+      border: 1px solid var(--line-bright);
+      color: var(--muted);
+    }
+
+    .tag.on { color: var(--bone-bright); border-color: #3d4349; }
+    .tag.alert { color: var(--crimson); border-color: var(--crimson-dim); }
+
+    /* ---------- install ---------- */
+
+    .launch {
+      margin-top: 24px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+
+    esp-web-install-button { display: inline-block; }
+
+    /* Before the esp-web-tools module upgrades the element every light-DOM
+       child renders at once, so the browser-support and HTTPS warnings would
+       sit beside the button on a perfectly capable browser. Once defined, its
+       shadow root slots in only the one that applies. */
+    esp-web-install-button:not(:defined) > :not([slot="activate"]) { display: none; }
+
+    button.primary {
+      background: var(--crimson);
+      color: #fff;
+      font-family: var(--sans);
+      font-size: 0.92rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 13px 30px;
+      border: 1px solid var(--crimson);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.12s ease, border-color 0.12s ease;
+    }
+
+    button.primary:hover:not(:disabled) { background: #e02a2f; border-color: #e02a2f; }
+    button.primary:focus-visible { outline: 2px solid var(--bone); outline-offset: 2px; }
+
+    button.primary:disabled {
+      background: transparent;
+      color: var(--muted);
+      border-color: var(--line-bright);
+      cursor: not-allowed;
+    }
+
+    .launch-note {
+      font-family: var(--mono);
+      font-size: 0.74rem;
+      color: var(--muted);
+      letter-spacing: 0.04em;
+    }
+
+    /* ---------- callouts ---------- */
+
+    .callout {
+      border-left: 2px solid var(--line-bright);
+      padding: 2px 0 2px 16px;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 16px 0;
+    }
+
+    .callout.warn { border-left-color: var(--crimson); }
+    .callout strong { color: var(--bone); font-weight: 600; }
+    .callout[hidden] { display: none; }
+
+    /* ---------- lists / tables ---------- */
+
+    ol.steps { list-style: none; counter-reset: s; }
+
+    ol.steps li {
+      counter-increment: s;
+      position: relative;
+      padding-left: 34px;
+      margin-bottom: 12px;
+      font-size: 0.93rem;
+    }
+
+    ol.steps li::before {
+      content: counter(s, decimal-leading-zero);
+      position: absolute;
+      left: 0;
+      top: 1px;
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      color: var(--crimson);
+    }
+
+    ul.plain { list-style: none; }
+
+    ul.plain li {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 9px;
+      font-size: 0.93rem;
+    }
+
+    ul.plain li::before {
+      content: '';
+      position: absolute;
+      left: 2px;
+      top: 11px;
+      width: 5px;
+      height: 1px;
+      background: var(--crimson);
+    }
+
+    .table-wrap { overflow-x: auto; margin: 16px 0; }
+
+    table { border-collapse: collapse; width: 100%; min-width: 420px; font-size: 0.88rem; }
+
+    th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); }
+
+    th {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+
+    code {
+      font-family: var(--mono);
+      font-size: 0.88em;
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 3px;
+      padding: 1px 6px;
+      color: var(--bone-bright);
+    }
+
+    /* ---------- credits ---------- */
+
+    .credits { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+
+    .credit { background: var(--surface); padding: 18px 22px; }
+
+    .credit h3 {
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: var(--bone-bright);
+      margin-bottom: 3px;
+    }
+
+    .credit .role {
+      font-family: var(--mono);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--crimson);
+      margin-bottom: 8px;
+    }
+
+    .credit p { font-size: 0.89rem; color: var(--muted); margin: 0; }
+
+    a { color: var(--bone-bright); text-decoration: none; border-bottom: 1px solid var(--line-bright); }
+    a:hover { border-bottom-color: var(--crimson); }
+
+    footer {
+      margin-top: 48px;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      font-family: var(--mono);
+      font-size: 0.72rem;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    footer a { border-bottom: none; color: var(--muted); }
+    footer a:hover { color: var(--bone); }
+
+    @media (max-width: 620px) {
+      body { padding: 28px 16px 44px; }
+      .masthead { gap: 16px; }
+      .masthead img { width: 52px; }
+      .wordmark { font-size: 1.4rem; }
+      .panel { padding: 18px; }
+      .spec { grid-template-columns: 1fr; gap: 2px; }
+      .launch { flex-direction: column; align-items: stretch; }
+      button.primary { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+
+    <header class="masthead">
+      <img src="./assets/marauder-skull.png" alt="" width="420" height="719">
+      <div>
+        <div class="wordmark">MARAUDER</div>
+        <div class="subtitle">CYD Battery &amp; GPS Build · Web Flasher</div>
+      </div>
+    </header>
+
+    <section>
+      <h2>Install</h2>
+      <div class="panel">
+        <label class="field" for="board">Target hardware</label>
+        <select id="board">
+          <option value="cyd_2432S028" selected>CYD 2432S028 — 2.8"</option>
+          <option value="cyd_2432S028_inverted">CYD 2432S028 — 2.8" (inverted display)</option>
+          <option value="cyd_2432S028_2usb">CYD 2432S028 — 2.8" 2-USB (V2.1)</option>
+          <option value="cyd_2432S024_guition">CYD 2432S024 Guition — 2.4"</option>
+          <option value="cyd_3_5_inch">CYD 3.5"</option>
+        </select>
+
+        <dl class="specs" id="specs">
+          <div class="spec"><dt>Display</dt><dd id="s-display">—</dd></div>
+          <div class="spec"><dt>MCU</dt><dd id="s-mcu">—</dd></div>
+          <div class="spec"><dt>Battery</dt><dd id="s-battery">—</dd></div>
+          <div class="spec"><dt>GPS</dt><dd id="s-gps">—</dd></div>
+          <div class="spec"><dt>Firmware</dt><dd id="s-firmware">—</dd></div>
+        </dl>
+
+        <div class="callout warn" id="unavailable" hidden>
+          <strong>No published build for this board yet.</strong>
+          Firmware is attached here automatically when a release is cut. Until then, take a
+          <code>.bin</code> from the
+          <a href="https://github.com/d3mocide/ESP32Marauder-cyd-hedge/releases/latest">latest release</a>
+          and flash it with esptool.
+        </div>
+
+        <div class="launch">
+          <esp-web-install-button id="install-btn" erase-first>
+            <button class="primary" slot="activate">Flash firmware</button>
+            <span slot="unsupported" class="launch-note">
+              This browser can't access serial ports — use Chrome, Edge, or Opera on a desktop.
+            </span>
+            <span slot="not-allowed" class="launch-note">
+              Flashing requires the page to be served over HTTPS.
+            </span>
+          </esp-web-install-button>
+          <span class="launch-note" id="launch-note">Select a board to begin</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Procedure</h2>
+      <div class="callout warn">
+        <strong>Chrome, Edge, or Opera on a desktop.</strong>
+        Safari and Firefox do not implement Web Serial. The device is fully erased before
+        writing — anything already on it is lost.
+      </div>
+      <ol class="steps">
+        <li>Connect the board to your computer over USB.</li>
+        <li>Select your hardware above. A wrong pick leaves the screen blank or scrambled — harmless, just re-flash.</li>
+        <li>Press <em>Flash firmware</em> and choose the serial port in the browser prompt.</li>
+        <li>Wait for the write to finish, roughly 90–150 seconds.</li>
+        <li>The board reboots into Marauder on its own.</li>
+      </ol>
+    </section>
+
+    <section>
+      <h2>What this build changes</h2>
+      <p>Everything upstream Marauder does, plus hardware support for the CYD battery mod:</p>
+      <ul class="plain">
+        <li>Battery percentage in the status bar, read from a MAX17048 fuel gauge on CN1</li>
+        <li>GPS relocated to the bottom port (P5) so the fuel gauge can occupy CN1</li>
+        <li>A separate build for panels that come up with inverted colours</li>
+        <li>No serial CLI — the GPS UART claims those pins, so everything is driven from the touchscreen</li>
+      </ul>
+      <div class="callout">
+        <strong>Both peripherals are optional.</strong> The firmware probes for the fuel gauge and
+        GPS at boot and carries on without them, so these builds are safe on a stock CYD.
+      </div>
+    </section>
+
+    <section>
+      <h2>WiGLE upload</h2>
+      <p>
+        Wardrive logs go from the SD card to WiGLE over WiFi with no computer in between. Since this
+        build has no CLI, credentials are supplied on the card:
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>File on SD root</th><th>Contents</th></tr></thead>
+          <tbody>
+            <tr><td><code>/wigle_api_name.txt</code></td><td>WiGLE API name</td></tr>
+            <tr><td><code>/wigle_api_token.txt</code></td><td>WiGLE API token</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ol class="steps">
+        <li>Place both files on the card and boot — they are read into settings, then deleted.</li>
+        <li>Join a network from <code>WiFi → General → Join WiFi</code>.</li>
+        <li>Upload from <code>WiFi → General → Upload Wardrive Logs</code>.</li>
+      </ol>
+      <div class="callout">
+        Uploaded logs get a <code>.wigle</code> sidecar written beside them, so repeat runs skip
+        anything already sent.
+      </div>
+    </section>
+
+    <section>
+      <h2>Credit</h2>
+      <div class="credits">
+        <div class="credit">
+          <h3><a href="https://github.com/justcallmekoko/ESP32Marauder">justcallmekoko</a></h3>
+          <div class="role">Author — ESP32 Marauder</div>
+          <p>
+            Created and maintains ESP32 Marauder, the firmware everything here is built on. This
+            fork tracks his releases; the current base is v1.14.1. All of the scanning, attack,
+            and wardriving work is his.
+          </p>
+        </div>
+        <div class="credit">
+          <h3><a href="https://github.com/CodeHedge/ESP32Marauder">Hedge (CodeHedge)</a></h3>
+          <div class="role">Author — CYD battery &amp; GPS fork</div>
+          <p>
+            Built the CYD variant this repository continues: MAX17048 fuel gauge support, the GPS
+            move to the bottom port, the inverted-display build, and the original CYD web flasher.
+            Every CYD-specific change here started as his work.
+          </p>
+        </div>
+        <div class="credit">
+          <h3><a href="https://github.com/d3mocide/ESP32Marauder-cyd-hedge">This fork</a></h3>
+          <div class="role">Maintenance</div>
+          <p>
+            Keeps Hedge's CYD build current with upstream and publishes the firmware served by this
+            page. Hardware pairing:
+            <a href="https://biscuitshop.us/products/esp32-marauder-battery-mod-kit">ESP32 Marauder Battery Mod Kit</a>.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <span>MIT licensed · Authorised testing and security research only</span>
+      <span>
+        <a href="https://github.com/d3mocide/ESP32Marauder-cyd-hedge">Source</a> ·
+        <a href="https://github.com/justcallmekoko/ESP32Marauder/wiki">Wiki</a>
+      </span>
+    </footer>
+
+  </div>
+
+  <script>
+    (function () {
+      var BOARDS = {
+        cyd_2432S028: {
+          label: 'CYD 2432S028',
+          display: '2.8" 240×320 · ILI9341 · resistive touch',
+          mcu: 'ESP32 · single micro-USB',
+          battery: true,
+          gps: 'Bottom port (P5) · UART TX 1 / RX 3'
+        },
+        cyd_2432S028_inverted: {
+          label: 'CYD 2432S028 Inverted',
+          display: '2.8" 240×320 · ILI9341 · resistive touch',
+          mcu: 'ESP32 · single micro-USB',
+          battery: true,
+          gps: 'Bottom port (P5) · UART TX 1 / RX 3',
+          note: 'Identical to the standard 2432S028 apart from display inversion. Use this if the standard build renders like a photo negative.'
+        },
+        cyd_2432S028_2usb: {
+          label: 'CYD 2432S028 2-USB',
+          display: '2.8" 240×320 · ST7789 · resistive touch',
+          mcu: 'ESP32 · USB-C and micro-USB',
+          battery: true,
+          gps: 'Bottom port (P5) · UART TX 1 / RX 3',
+          note: 'The V2.1 revision. Built against Arduino-ESP32 2.0.11 for GPS compatibility.'
+        },
+        cyd_2432S024_guition: {
+          label: 'CYD 2432S024 Guition',
+          display: '2.4" 240×320 · ILI9341 · resistive touch',
+          mcu: 'ESP32',
+          battery: false,
+          gps: 'Bottom port · UART TX 1 / RX 3',
+          note: 'Also sold as the RL Phantom.'
+        },
+        cyd_3_5_inch: {
+          label: 'CYD 3.5"',
+          display: '3.5" 320×480 · ST7796',
+          mcu: 'ESP32 · separate SD slot',
+          battery: false,
+          gps: 'UART TX 21 / RX 25'
+        }
+      };
+
+      var select      = document.getElementById('board');
+      var installBtn  = document.getElementById('install-btn');
+      var activateBtn = installBtn.querySelector('button[slot="activate"]');
+      var unavailable = document.getElementById('unavailable');
+      var launchNote  = document.getElementById('launch-note');
+
+      var out = {
+        display:  document.getElementById('s-display'),
+        mcu:      document.getElementById('s-mcu'),
+        battery:  document.getElementById('s-battery'),
+        gps:      document.getElementById('s-gps'),
+        firmware: document.getElementById('s-firmware')
+      };
+
+      // id -> {version} once fetched, null if there is no published build,
+      // undefined while still in flight.
+      var builds = {};
+
+      function manifestPath(id) { return './firmware/' + id + '/manifest.json'; }
+
+      function tag(text, cls) {
+        var s = document.createElement('span');
+        s.className = 'tag' + (cls ? ' ' + cls : '');
+        s.textContent = text;
+        return s;
+      }
+
+      function setNode(el, node, noteText) {
+        el.textContent = '';
+        el.appendChild(node);
+        if (noteText) {
+          var n = document.createElement('span');
+          n.className = 'note';
+          n.textContent = noteText;
+          el.appendChild(n);
+        }
+      }
+
+      function render() {
+        var id = select.value;
+        var b = BOARDS[id];
+        if (!b) return;
+
+        out.display.textContent = b.display;
+        out.mcu.textContent = b.mcu;
+
+        setNode(
+          out.battery,
+          b.battery ? tag('MAX17048 on CN1', 'on') : tag('Not enabled'),
+          b.battery ? null : 'This board has no fuel gauge wired in the fork configuration.'
+        );
+
+        var gpsSpan = document.createElement('span');
+        gpsSpan.className = 'mono';
+        gpsSpan.textContent = b.gps;
+        setNode(out.gps, gpsSpan, b.note);
+
+        var build = builds[id];
+        // undefined = still fetching; treat as not-yet-installable rather than
+        // pointing the button at a manifest that may 404.
+        var ready = !!build;
+
+        if (build === undefined) {
+          setNode(out.firmware, tag('Checking…'));
+        } else if (build === null) {
+          setNode(out.firmware, tag('Not published', 'alert'));
+        } else {
+          setNode(out.firmware, tag('v' + build.version, 'on'));
+        }
+
+        if (ready) {
+          installBtn.setAttribute('manifest', manifestPath(id));
+          installBtn.manifest = manifestPath(id);
+        } else {
+          installBtn.removeAttribute('manifest');
+        }
+
+        activateBtn.disabled = !ready;
+        unavailable.hidden = (build !== null);
+        launchNote.textContent = ready
+          ? 'Installing ' + b.label + ' v' + build.version + ' — device will be erased'
+          : 'No installable build for ' + b.label;
+      }
+
+      select.addEventListener('change', render);
+
+      // Versions come from the same manifests the install button consumes, so
+      // the page can never advertise a build different from what it writes.
+      Object.keys(BOARDS).forEach(function (id) {
+        fetch(manifestPath(id), { cache: 'no-cache' })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (m) { builds[id] = (m && m.version) ? { version: m.version } : null; })
+          .catch(function () { builds[id] = null; })
+          .then(function () { if (id === select.value) render(); });
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

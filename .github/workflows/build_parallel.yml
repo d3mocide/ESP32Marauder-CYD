@@ -36,7 +36,10 @@ jobs:
           - { name: "Marauder CYD 2432S028 2 USB",   flag: "MARAUDER_CYD_2USB",        fbqn: "esp32:esp32:d32:PartitionScheme=min_spiffs",                                                    file_name: "cyd_2432S028_2usb",       tft: true,  tft_file: "User_Setup_cyd_2usb.h",              build_dir: "d32",                        addr: "0x1000",   idf_ver: "2.0.11",   nimble_ver: "2.3.8",   esp_async: "bigbrodude6119/ESPAsyncWebServer",    esp_async_ver: "master" }
           - { name: "Marauder CYD 3.5inch",          flag: "MARAUDER_CYD_3_5_INCH",    fbqn: "esp32:esp32:d32:PartitionScheme=min_spiffs",                                                    file_name: "cyd_3_5_inch",            tft: true,  tft_file: "User_Setup_cyd_3_5_inch.h",          build_dir: "d32",                        addr: "0x1000",   idf_ver: "2.0.11",   nimble_ver: "1.3.8",    esp_async: "bigbrodude6119/ESPAsyncWebServer",    esp_async_ver: "master" }
           - { name: "M5Cardputer",                   flag: "MARAUDER_CARDPUTER",       fbqn: "esp32:esp32:esp32s3:PartitionScheme=min_spiffs,FlashSize=8M,PSRAM=disabled",                    file_name: "m5cardputer",             tft: true,  tft_file: "User_Setup_marauder_m5cardputer.h",  build_dir: "esp32s3",                    addr: "0x1000",   idf_ver: "2.0.11",   nimble_ver: "1.3.8",    esp_async: "bigbrodude6119/ESPAsyncWebServer",    esp_async_ver: "master" }
+          - { name: "M5Cardputer ADV",               flag: "MARAUDER_CARDPUTER_ADV",   fbqn: "esp32:esp32:esp32s3:PartitionScheme=min_spiffs,FlashSize=8M,PSRAM=disabled",                    file_name: "m5cardputer_adv",         tft: true,  tft_file: "User_Setup_marauder_m5cardputer_adv.h",  build_dir: "esp32s3",                addr: "0x1000",   idf_ver: "2.0.11",   nimble_ver: "1.3.8",    esp_async: "bigbrodude6119/ESPAsyncWebServer",    esp_async_ver: "master" }
           - { name: "ESP32-C5-DevKitC-1",            flag: "MARAUDER_C5",              fbqn: "esp32:esp32:esp32c5:FlashSize=8M,PartitionScheme=min_spiffs,PSRAM=enabled",                     file_name: "esp32c5devkitc1",         tft: false, tft_file: "",                                   build_dir: "esp32c5",                    addr: "0x2000",   idf_ver: "3.3.4",    nimble_ver: "2.3.8",   esp_async: "bigbrodude6119/ESPAsyncWebServer",    esp_async_ver: "master" }
+          - { name: "M5NanoC6",                      flag: "MARAUDER_M5_NANO_C6",      fbqn: "esp32:esp32:esp32c6:CDCOnBoot=cdc,PartitionScheme=min_spiffs",                                  file_name: "m5nanoc6",                tft: false, tft_file: "",                                   build_dir: "esp32c6",                    addr: "0x2000",   idf_ver: "3.3.4",    nimble_ver: "2.3.8",   esp_async: "bigbrodude6119/ESPAsyncWebServer",    esp_async_ver: "master" }
+          - { name: "Marauder Pancake",              flag: "MARAUDER_PANCAKE",         fbqn: "esp32:esp32:esp32c5:FlashSize=8M,PartitionScheme=default_8MB,PSRAM=enabled",                    file_name: "pancake",                 tft: true,  tft_file: "User_Setup_marauder_pancake.h",      build_dir: "esp32c5",                    addr: "0x2000",   idf_ver: "3.3.4",    nimble_ver: "2.3.8",   esp_async: "bigbrodude6119/ESPAsyncWebServer",    esp_async_ver: "master", tft_repo: "H4W9/TFT_eSPI", tft_ref: "ESP32-C5" }
           
     steps:
       - name: Checkout Code
@@ -45,8 +48,8 @@ jobs:
       - name: Install Arduino CLI
         run: |
           curl -fsSL https://raw.githubusercontent.com/arduino/arduino-cli/master/install.sh | sh
-          echo "/home/runner/work/ESP32Marauder/ESP32Marauder/bin" >> $GITHUB_PATH
-          export PATH=$PATH:/home/runner/work/ESP32Marauder/ESP32Marauder/bin
+          echo "${GITHUB_WORKSPACE}/bin" >> $GITHUB_PATH
+          export PATH=$PATH:${GITHUB_WORKSPACE}/bin
           arduino-cli version
 
       #- name: Install Arduino-ESP32 Core v${{ matrix.board.idf_ver }}
@@ -107,10 +110,10 @@ jobs:
       - name: Install TFT_eSPI
         uses: actions/checkout@v2
         with:
-          repository: Bodmer/TFT_eSPI
-          ref: V2.5.34
+          repository: ${{ matrix.board.tft_repo || 'Bodmer/TFT_eSPI' }}
+          ref: ${{ matrix.board.tft_ref || 'V2.5.34' }}
           path: CustomTFT_eSPI
-          
+
       - name: Install XPT2046_Touchscreen
         uses: actions/checkout@v2
         with:
@@ -180,7 +183,10 @@ jobs:
           repository: adafruit/Adafruit_MAX1704X
           ref: 1.0.2
           path: CustomAdafruit_MAX1704X
-          
+
+      - name: Install Adafruit_TCA8418
+        run: cp -r libraries/Adafruit_TCA8418 CustomAdafruit_TCA8418
+
       - name: Show Libraries
         run: |
           find /home/runner/ -name "Custom*"
@@ -205,6 +211,7 @@ jobs:
               sed -i 's/compiler.c.elf.libs.esp32s3=/compiler.c.elf.libs.esp32s3=-zmuldefs /' "$i"
               sed -i 's/compiler.c.elf.libs.esp32s2=/compiler.c.elf.libs.esp32s2=-zmuldefs /' "$i"
               sed -i 's/compiler.c.elf.libs.esp32=/compiler.c.elf.libs.esp32=-zmuldefs /' "$i"
+              sed -i 's/-fexceptions/-fno-exceptions/g' "$i"
               cat "$i" | grep compiler.c.elf.libs.esp32c3
               cat "$i" | grep compiler.c.elf.libs.esp32s3
               cat "$i" | grep compiler.c.elf.libs.esp32s2
@@ -216,6 +223,9 @@ jobs:
             for i in $(find /home/runner/.arduino15/packages/esp32/hardware/esp32/ -name "platform.txt"); do
               sed -i 's/compiler.c.elf.extra_flags=/compiler.c.elf.extra_flags=-Wl,-zmuldefs /' "$i"
             done
+            for f in $(find /home/runner/.arduino15/packages/esp32/tools/esp32-arduino-libs/ -name "cpp_flags"); do
+              sed -i 's/-fexceptions/-fno-exceptions/g' "$f"
+            done
           fi
           
       - name: Configure TFT_eSPI (if needed)
@@ -223,7 +233,7 @@ jobs:
           pwd
           if [[ ${{ matrix.board.tft }} == true ]]; then
             find /home/runner/ -name "*TFT_eSPI*"
-            sed -i 's/^\/\/#include <${{ matrix.board.tft_file }}>/#include <${{ matrix.board.tft_file }}>/' /home/runner/work/ESP32Marauder/ESP32Marauder/CustomTFT_eSPI/User_Setup_Select.h
+            sed -i 's/^\/\/#include <${{ matrix.board.tft_file }}>/#include <${{ matrix.board.tft_file }}>/' ${GITHUB_WORKSPACE}/CustomTFT_eSPI/User_Setup_Select.h
           fi
 
       - name: Build Marauder for ${{ matrix.board.name }}
@@ -258,6 +268,66 @@ jobs:
         with:
           name: ${{ env.artifact_name }}
           path: ${{ env.artifact_path }}
+          retention-days: 5
+
+      # The release artifact above is the application image on its own, which is
+      # all esptool needs when the board already has a bootloader. The web
+      # flasher erases first, so it has to write the full set. Collected as a
+      # separate artifact so the release job's glob keeps matching only the
+      # application bins.
+      - name: Stage ${{ matrix.board.name }} Web Flasher Bins
+        if: ${{ startsWith(matrix.board.file_name, 'cyd_') }}
+        run: |
+          set -euo pipefail
+
+          VERSION_DOT=$(grep '#define MARAUDER_VERSION' ./esp32_marauder/configs.h | sed -E 's/.*"v([^"]+)"/\1/')
+          BUILD_DIR=./esp32_marauder/build/esp32.esp32.${{ matrix.board.build_dir }}
+          STAGE=./webflasher_stage/${{ matrix.board.file_name }}
+
+          mkdir -p "$STAGE"
+          cp "$BUILD_DIR/${{ env.artifact_name }}"          "$STAGE/firmware.bin"
+          cp "$BUILD_DIR/esp32_marauder.ino.bootloader.bin" "$STAGE/bootloader.bin"
+          cp "$BUILD_DIR/esp32_marauder.ino.partitions.bin" "$STAGE/partitions.bin"
+
+          # boot_app0 ships with the core rather than the sketch build.
+          BOOT_APP0=$(find /home/runner/.arduino15/packages/esp32 -name boot_app0.bin | head -n 1)
+          if [ -z "$BOOT_APP0" ]; then
+            echo "::error::boot_app0.bin not found in the installed ESP32 core"
+            exit 1
+          fi
+          cp "$BOOT_APP0" "$STAGE/boot_app0.bin"
+
+          # esp-web-tools takes byte offsets, not hex strings.
+          BOOTLOADER_OFFSET=$(( ${{ matrix.board.addr }} ))
+
+          cat > "$STAGE/manifest.json" <<EOF
+          {
+            "name": "ESP32 Marauder — ${{ matrix.board.name }}",
+            "version": "$VERSION_DOT",
+            "new_install_prompt_erase": true,
+            "builds": [
+              {
+                "chipFamily": "ESP32",
+                "parts": [
+                  { "path": "bootloader.bin", "offset": $BOOTLOADER_OFFSET },
+                  { "path": "partitions.bin", "offset": 32768 },
+                  { "path": "boot_app0.bin",  "offset": 57344 },
+                  { "path": "firmware.bin",   "offset": 65536 }
+                ]
+              }
+            ]
+          }
+          EOF
+
+          python3 -c "import json,sys; json.load(open('$STAGE/manifest.json'))"
+          ls -la "$STAGE"
+
+      - name: Upload ${{ matrix.board.name }} Web Flasher Bins
+        if: ${{ startsWith(matrix.board.file_name, 'cyd_') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: webflasher-${{ matrix.board.file_name }}
+          path: ./webflasher_stage/${{ matrix.board.file_name }}
           retention-days: 5
 
   post_compile_steps:
@@ -301,8 +371,10 @@ jobs:
             | v6 | `_new_hardware.bin`/`_v6.bin` |
             | v6.1/v6.2 | `_v6_1.bin` |
             | v7 | `_v7.bin` |
+            | v8 | `_v8.bin` |
             | Kit | `_kit.bin` |
             | Mini | `_mini.bin` |
+            | Mini v3 | `_mini_v3.bin` |
             | Flipper Zero | `_flipper.bin` |
             | MutliBoard S3 | `_multiboardS3.bin` |
             | LDDB/NodeMCU/Wemos | `_lddb.bin` |
@@ -314,6 +386,7 @@ jobs:
             | RL Phantom | `_cyd_2432S024_guition.bin` |
             | CYD 2432S028 2 USB | `_cyd_2432S028_2usb.bin` |
             | M5 Cardputer | `_m5cardputer.bin` (Available on M5 Burner) |
+            | M5 Cardputer ADV | `_m5cardputer_adv.bin` |
             | ESP32-C5 DevKit | [`_esp32c5_devkit.bin`](https://github.com/justcallmekoko/ESP32Marauder/wiki/ESP32%E2%80%90C5%E2%80%90DevKitC%E2%80%901) |
             | AWOK V2/V3 screen (white usb) | `_v6_1.bin` |
             | AWOK V2 flipper (orange usb) | `_flipper.bin` |
@@ -415,3 +488,75 @@ jobs:
           git add resources/CURRENT/ resources/PREVIOUS/
           git commit -m "Update Marauder CYD firmware to ${{ steps.version.outputs.version_dot }}"
           git push
+  publish_webflasher:
+    name: Publish Web Flasher to Pages
+    runs-on: ubuntu-latest
+    needs: [compile_sketch]
+    if: ${{ github.event_name == 'workflow_dispatch' }}
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout ESP32Marauder
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - name: Download Web Flasher Bins
+        uses: actions/download-artifact@v4
+        with:
+          pattern: webflasher-*
+          path: ./webflasher_artifacts
+
+      - name: Lay Out docs/firmware
+        run: |
+          set -euo pipefail
+
+          # Each artifact unpacks to webflasher_artifacts/webflasher-<file_name>/.
+          # Strip the prefix so the directory matches the board id the page asks
+          # for in ./firmware/<id>/manifest.json.
+          rm -rf docs/firmware
+          published=0
+
+          for dir in ./webflasher_artifacts/webflasher-*/; do
+            [ -d "$dir" ] || continue
+            board=$(basename "$dir")
+            board=${board#webflasher-}
+
+            for f in manifest.json firmware.bin bootloader.bin partitions.bin boot_app0.bin; do
+              if [ ! -f "$dir/$f" ]; then
+                echo "::error::$board is missing $f"
+                exit 1
+              fi
+            done
+
+            mkdir -p "docs/firmware/$board"
+            cp "$dir"/*.bin "$dir/manifest.json" "docs/firmware/$board/"
+            published=$((published + 1))
+            echo "Published $board"
+          done
+
+          if [ "$published" -eq 0 ]; then
+            echo "::error::No web flasher artifacts were found"
+            exit 1
+          fi
+
+          echo "Published $published board(s)"
+          find docs/firmware -type f | sort
+
+      - name: Commit and Push
+        run: |
+          set -euo pipefail
+
+          VERSION_DOT=$(grep '#define MARAUDER_VERSION' ./esp32_marauder/configs.h | sed -E 's/.*"v([^"]+)"/\1/')
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/firmware
+
+          if git diff --cached --quiet; then
+            echo "Firmware is already up to date, nothing to commit"
+            exit 0
+          fi
+
+          git commit -m "Publish Marauder CYD v${VERSION_DOT} to the web flasher"
+          git push origin master

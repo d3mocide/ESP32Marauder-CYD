@@ -36,7 +36,7 @@ extern Settings settings_obj;
 class SDInterface {
 
   private:
-  #if (defined(MARAUDER_M5STICKC) || defined(HAS_CYD_TOUCH) || defined(MARAUDER_CARDPUTER))
+  #if (defined(MARAUDER_M5STICKC) || defined(HAS_CYD_TOUCH) || defined(MARAUDER_CARDPUTER) || defined(MARAUDER_CARDPUTER_ADV))
     SPIClass *spiExt;
   #elif defined(HAS_C5_SD)
     SPIClass* _spi;
@@ -56,6 +56,7 @@ class SDInterface {
     bool supported = false;
 
     String card_sz;
+    String selected_file_name = "";
   
     bool initSD();
 
