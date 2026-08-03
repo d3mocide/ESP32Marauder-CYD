@@ -3,9 +3,13 @@
 <!---[![Build Status](https://travis-ci.com/CodeHedge/ESP32Marauder.svg?branch=master)](https://travis-ci.com/CodeHedge/ESP32Marauder)--->
 <!---Shields/Badges https://shields.io/--->
 
+<p align="center"><img alt="Marauder" src="pictures/marauder_skull_patch_04_full_final.png" width="200"></p>
+
 ## About This Fork
 
-This repository is a fork of the ESP32 Marauder firmware with modified capabilities specifically for CYD (Cheap Yellow Display) builds.
+This repository carries [Hedge's](https://github.com/CodeHedge/ESP32Marauder) CYD (Cheap Yellow Display) fork of [justcallmekoko's ESP32 Marauder](https://github.com/justcallmekoko/ESP32Marauder), kept current with upstream. The firmware is koko's; the CYD battery and GPS work is Hedge's. See [Credits](#credits).
+
+Currently tracking upstream **v1.14.1**.
 
 ### Primary Modifications:
 
@@ -46,3 +50,34 @@ Wardrive logs go straight from the SD card to WiGLE over WiFi. Since this fork h
 4. Upload from `WiFi → General → Upload Wardrive Logs` — either a single log or `Upload All`.
 
 Successfully uploaded logs get a `.wigle` sidecar file written alongside them, so re-running an upload skips anything already sent. `WDGWars` and `Both` are available from the same menu.
+
+## Credits
+
+This fork stands on two people's work, and neither should be mistaken for maintainers of this repository — please don't send issues from this fork to them.
+
+### [justcallmekoko](https://github.com/justcallmekoko/ESP32Marauder) — author of ESP32 Marauder
+
+Created and maintains ESP32 Marauder. Every scanning, attack, wardriving, and UI capability in this firmware is his work, along with the hardware ecosystem around it. This repository is a downstream fork that tracks his releases — the current base is v1.14.1. If you want the firmware itself, or support for any board other than a CYD, go upstream.
+
+- Project: <https://github.com/justcallmekoko/ESP32Marauder>
+- Wiki: <https://github.com/justcallmekoko/ESP32Marauder/wiki>
+
+### [Hedge / CodeHedge](https://github.com/CodeHedge/ESP32Marauder) — author of the CYD battery & GPS fork
+
+Built the CYD variant this repository continues. Every CYD-specific change here originated with him:
+
+- MAX17048 fuel gauge support on CN1, with battery percentage in the status bar
+- Relocating GPS to the bottom port (P5) to free CN1 for the gauge
+- The `MARAUDER_CYD_MICRO_INVERTED` build for panels needing display inversion
+- The original CYD web flasher: <https://codehedge.github.io/Adafruit_WebSerial_ESPTool/>
+- The crash guard for `HAS_BATTERY` when no gauge is present, since adopted upstream
+
+### This repository
+
+Maintenance only: keeping Hedge's CYD build synced with upstream Marauder and publishing the firmware served by the [web flasher](https://d3mocide.github.io/ESP32Marauder-cyd-hedge/).
+
+The Marauder skull artwork is from the upstream project.
+
+## License
+
+MIT, inherited from upstream — see [LICENSE](LICENSE).
