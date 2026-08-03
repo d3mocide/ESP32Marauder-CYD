@@ -28,14 +28,14 @@ Alternatively, you can achieve the same functionality using the Adafruit MAX1704
 ## Getting Started
 
 ### Web Flasher
-Flash your device directly from the browser: **[d3mocide.github.io/ESP32Marauder-cyd-hedge](https://d3mocide.github.io/ESP32Marauder-cyd-hedge/)**
+Flash your device directly from the browser: **[d3mocide.github.io/ESP32Marauder-CYD](https://d3mocide.github.io/ESP32Marauder-CYD/)**
 
 Pick your CYD variant, hit the button, choose the serial port. Requires Chrome, Edge, or Opera — Safari and Firefox do not implement Web Serial. The flasher lives in [`docs/`](docs/) and is served by GitHub Pages; firmware is published into `docs/firmware/<board>/` by the `publish_webflasher` job whenever a release build is dispatched.
 
 Hedge's original web flasher is still available at [codehedge.github.io/Adafruit_WebSerial_ESPTool](https://codehedge.github.io/Adafruit_WebSerial_ESPTool/).
 
 ### Downloads
-Download the [latest release](https://github.com/d3mocide/ESP32Marauder-cyd-hedge/releases/latest) of the firmware.
+Download the [latest release](https://github.com/d3mocide/ESP32Marauder-CYD/releases/latest) of the firmware.
 
 ### Documentation
 Check out the project [wiki](https://github.com/justcallmekoko/ESP32Marauder/wiki) for a full overview of the ESP32 Marauder features and capabilities.
@@ -74,7 +74,7 @@ Built the CYD variant this repository continues. Every CYD-specific change here 
 
 ### This repository
 
-Maintenance only: keeping Hedge's CYD build synced with upstream Marauder and publishing the firmware served by the [web flasher](https://d3mocide.github.io/ESP32Marauder-cyd-hedge/).
+Maintenance only: keeping Hedge's CYD build synced with upstream Marauder and publishing the firmware served by the [web flasher](https://d3mocide.github.io/ESP32Marauder-CYD/).
 
 The Marauder skull artwork is from the upstream project.
 
