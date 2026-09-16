@@ -9,7 +9,7 @@
 
 This repository carries [Hedge's](https://github.com/CodeHedge/ESP32Marauder) CYD (Cheap Yellow Display) fork of [justcallmekoko's ESP32 Marauder](https://github.com/justcallmekoko/ESP32Marauder), kept current with upstream. The firmware is koko's; the CYD battery and GPS work is Hedge's. See [Credits](#credits).
 
-Currently tracking upstream **v1.16.0**.
+Currently tracking upstream **v1.17.0**.
 
 > **This fork builds CYD targets only** — 2432S028, 2432S028 Inverted, 2432S028 2-USB, 2432S024 Guition and the 3.5 inch. The firmware source still supports every board upstream does, so other targets can be built locally by setting the flag in `esp32_marauder/configs.h`, but they are not built in CI and no binaries are published for them here. For any non-CYD board, use [upstream's releases](https://github.com/justcallmekoko/ESP32Marauder/releases/latest).
 
@@ -59,7 +59,7 @@ This fork stands on two people's work, and neither should be mistaken for mainta
 
 ### [justcallmekoko](https://github.com/justcallmekoko/ESP32Marauder) — author of ESP32 Marauder
 
-Created and maintains ESP32 Marauder. Every scanning, attack, wardriving, and UI capability in this firmware is his work, along with the hardware ecosystem around it. This repository is a downstream fork that tracks his releases — the current base is v1.16.0. If you want the firmware itself, or support for any board other than a CYD, go upstream.
+Created and maintains ESP32 Marauder. Every scanning, attack, wardriving, and UI capability in this firmware is his work, along with the hardware ecosystem around it. This repository is a downstream fork that tracks his releases — the current base is v1.17.0. If you want the firmware itself, or support for any board other than a CYD, go upstream.
 
 - Project: <https://github.com/justcallmekoko/ESP32Marauder>
 - Wiki: <https://github.com/justcallmekoko/ESP32Marauder/wiki>
