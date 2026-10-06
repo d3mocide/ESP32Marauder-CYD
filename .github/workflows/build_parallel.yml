@@ -221,10 +221,16 @@ jobs:
           
       - name: Configure TFT_eSPI (if needed)
         run: |
-          pwd
           if [[ ${{ matrix.board.tft }} == true ]]; then
-            find /home/runner/ -name "*TFT_eSPI*"
-            sed -i 's/^\/\/#include <${{ matrix.board.tft_file }}>/#include <${{ matrix.board.tft_file }}>/' ${GITHUB_WORKSPACE}/CustomTFT_eSPI/User_Setup_Select.h
+            setup_file="$GITHUB_WORKSPACE/CustomTFT_eSPI/User_Setup_Select.h"
+            setup_header="$GITHUB_WORKSPACE/CustomTFT_eSPI/${{ matrix.board.tft_file }}"
+            test -f "$setup_file"
+            test -f "$setup_header"
+            sed -i 's|^//#include <${{ matrix.board.tft_file }}>|#include <${{ matrix.board.tft_file }}>|' "$setup_file"
+            grep -Fqx '#include <${{ matrix.board.tft_file }}>' "$setup_file" || {
+              echo "::error::Failed to select ${{ matrix.board.tft_file }} in TFT_eSPI"
+              exit 1
+            }
           fi
 
       - name: Build Marauder for ${{ matrix.board.name }}
@@ -341,7 +347,7 @@ jobs:
         run: |
           VERSION_DOT=$(grep '#define MARAUDER_VERSION' ./esp32_marauder/configs.h | sed -E 's/.*"v([^"]+)"/v\1/')
           echo "version_dot=$VERSION_DOT" >> $GITHUB_ENV
-          
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
