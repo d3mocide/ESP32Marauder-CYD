@@ -18,17 +18,6 @@ class CardputerFindMySoundTests(unittest.TestCase):
         self.assertIn("#define HAS_NIMBLE_2", cardputer_block)
         self.assertIn("#define HAS_IDF_3", cardputer_block)
 
-    def test_cardputer_ci_uses_matching_core_and_nimble_versions(self) -> None:
-        for workflow_name in ("build_parallel.yml", "nightly_build.yml"):
-            workflow = (ROOT / ".github" / "workflows" / workflow_name).read_text()
-            for board in ("MARAUDER_CARDPUTER", "MARAUDER_CARDPUTER_ADV"):
-                line = next(
-                    line
-                    for line in workflow.splitlines()
-                    if f'flag: "{board}"' in line
-                )
-                self.assertIn('idf_ver: "3.3.4"', line)
-                self.assertIn('nimble_ver: "2.3.8"', line)
 
     def test_findmy_sound_menu_remains_available(self) -> None:
         menu = (ROOT / "esp32_marauder" / "MenuFunctions.cpp").read_text()

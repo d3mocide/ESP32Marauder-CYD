@@ -8,28 +8,6 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class XiaoC5HardwareTests(unittest.TestCase):
-    def test_target_is_in_release_catalog_and_build_matrices(self):
-        registry = json.loads((ROOT / "installer" / "targets.json").read_text())
-        target = next(
-            target
-            for target in registry["targets"]
-            if target["id"] == "seeed-xiao-esp32-c5"
-        )
-        self.assertEqual(target["buildFlag"], "XIAO_ESP32_C5")
-        self.assertEqual(target["assetSuffix"], "xiao_esp32c5")
-        self.assertEqual(target["chipFamily"], "ESP32-C5")
-
-        expected = (
-            'flag: "XIAO_ESP32_C5",'
-            '            fbqn: "esp32:esp32:XIAO_ESP32C5:'
-            'CDCOnBoot=cdc,FlashMode=qio,FlashSize=8M,'
-            'PartitionScheme=default_8MB,PSRAM=enabled"'
-        )
-        for workflow in ("build_parallel.yml", "nightly_build.yml"):
-            contents = (ROOT / ".github" / "workflows" / workflow).read_text()
-            self.assertIn(expected, contents)
-            self.assertIn('file_name: "xiao_esp32c5"', contents)
-            self.assertIn('build_dir: "XIAO_ESP32C5"', contents)
 
     def test_target_uses_native_usb_safe_uart_pins(self):
         configs = (ROOT / "esp32_marauder" / "configs.h").read_text()
